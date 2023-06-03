@@ -145,14 +145,14 @@ class AttnDecoderRNN(nn.Module):
 
 
 class TreeNode:  # the class save the tree node
-    def __init__(self, embedding, rule_node, left_flag=False, inher_prob=0):
+    def __init__(self, embedding, formula_node, left_flag=False, inher_prob=0):
         self.embedding = embedding
-        self.rule_node = rule_node
+        self.formula_node = formula_node
         self.left_flag = left_flag
         self.inher_prob = inher_prob
 
 
-class RuleNode:  # the class save the rule node
+class FormulaNode:  # the class save the formula node
     def __init__(self, embedding, symbol_embedding, left_child, right_child, symbol_index=None):
         self.embedding = embedding
         self.symbol_embedding = symbol_embedding
@@ -216,27 +216,27 @@ class TreeAttn(nn.Module):
         return attn_energies.unsqueeze(1)
 
 
-class RuleAttn(nn.Module):
+class FormulaAttn(nn.Module):
     def __init__(self, input_size, hidden_size):
-        super(RuleAttn, self).__init__()
+        super(FormulaAttn, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.attn = nn.Linear(hidden_size + input_size, hidden_size)
         self.score = nn.Linear(hidden_size, 1)
 
-    def forward(self, rule_score, encoder_outputs, seq_mask=None):
-        # rule_score: r x dim
+    def forward(self, formula_score, encoder_outputs, seq_mask=None):
+        # formula_score: r x dim
         # encoder_outputs: s x b x dim
         max_len, this_batch_size, d = encoder_outputs.size()
-        r_num = rule_score.size(0)
+        r_num = formula_score.size(0)
         
         encoder_outputs_1 = encoder_outputs.view(-1, d).unsqueeze(0)  # 1 x (sb) x dim
         repeat_dims = [1] * encoder_outputs_1.dim()
         repeat_dims[0] = r_num
         encoder_outputs_1 = encoder_outputs_1.repeat(*repeat_dims)  # r x (SB) x dim
 
-        rule_1 = rule_score.unsqueeze(1).repeat([1, max_len*this_batch_size, 1])  # r x (SB) x dim
-        energy_in = torch.cat((encoder_outputs_1, rule_1),
+        formula_1 = formula_score.unsqueeze(1).repeat([1, max_len*this_batch_size, 1])  # r x (SB) x dim
+        energy_in = torch.cat((encoder_outputs_1, formula_1),
                               2).view(-1, self.input_size + self.hidden_size)
 
         score_feature = torch.tanh(self.attn(energy_in))
@@ -245,8 +245,8 @@ class RuleAttn(nn.Module):
         attn_energies = attn_energies.view(
             r_num, max_len, this_batch_size).transpose(1, 2).transpose(0, 1)  # B x r x S
         if seq_mask is not None:
-            rule_seq_mask = seq_mask.unsqueeze(1).repeat([1, r_num, 1])
-            attn_energies = attn_energies.masked_fill_(rule_seq_mask, -1e12)
+            formula_seq_mask = seq_mask.unsqueeze(1).repeat([1, r_num, 1])
+            attn_energies = attn_energies.masked_fill_(formula_seq_mask, -1e12)
         attn_energies = nn.functional.softmax(attn_energies, dim=-1)  # B x r x S
 
         return attn_energies
@@ -337,17 +337,17 @@ class Prediction(nn.Module):
         self.inher_ops = nn.Linear(hidden_size * 2, op_nums)
 
         self.attn = TreeAttn(hidden_size, hidden_size)
-        self.rule_attn = RuleAttn(hidden_size, hidden_size)
+        self.formula_attn = FormulaAttn(hidden_size, hidden_size)
         self.score = Score(hidden_size * 2, hidden_size)
         self.inher_score = Score(hidden_size * 2, hidden_size)
 
-        self.rule_probs1 = nn.Linear(hidden_size, hidden_size)
-        self.rule_probs2 = nn.Linear(hidden_size, 1)
+        self.formula_probs1 = nn.Linear(hidden_size, hidden_size)
+        self.formula_probs2 = nn.Linear(hidden_size, 1)
         self.sym_agg = nn.Linear(hidden_size * 3, hidden_size * 2)
 
-    def forward(self, node_stacks, left_childs, encoder_outputs, num_pades, padding_hidden, seq_mask, mask_nums, rule_scores, rule_roots, rule_none_id, train=False, rule_gt=None):
+    def forward(self, node_stacks, left_childs, encoder_outputs, num_pades, padding_hidden, seq_mask, mask_nums, formula_scores, formula_roots, formula_none_id, train=False, formula_gt=None):
         current_embeddings = []
-        inherited_rule_embeddings = []
+        inherited_formula_embeddings = []
         inherited_op, inherit_mask, inher_probs = [], [], []
         selected_op = []
         
@@ -359,25 +359,25 @@ class Prediction(nn.Module):
         for st in node_stacks:
             if len(st) == 0:
                 current_embeddings.append(padding_hidden)
-                inherited_rule_embeddings.append(padding_hidden)
+                inherited_formula_embeddings.append(padding_hidden)
                 inherited_op.append(zeros)
                 inherit_mask.append(zeros)
                 inher_probs.append(zeros[0])
             else:
                 current_node = st[-1]
                 current_embeddings.append(current_node.embedding)
-                if current_node.rule_node != None:
-                    if current_node.rule_node.symbol_index != None:
-                        inherited_rule_embeddings.append(padding_hidden)
-                        inherited_op.append(one_hot(current_node.rule_node.symbol_index, self.input_size+self.op_nums+num_pades.size(1)))
+                if current_node.formula_node != None:
+                    if current_node.formula_node.symbol_index != None:
+                        inherited_formula_embeddings.append(padding_hidden)
+                        inherited_op.append(one_hot(current_node.formula_node.symbol_index, self.input_size+self.op_nums+num_pades.size(1)))
                         inherit_mask.append(zeros)
                     else:  # inherit non-operator
-                        inherited_rule_embeddings.append(current_node.rule_node.symbol_embedding)
+                        inherited_formula_embeddings.append(current_node.formula_node.symbol_embedding)
                         inherited_op.append(zeros)
                         inherit_mask.append(ones)
                     inher_probs.append(current_node.inher_prob)
                 else:
-                    inherited_rule_embeddings.append(padding_hidden)
+                    inherited_formula_embeddings.append(padding_hidden)
                     inherited_op.append(zeros)
                     inherit_mask.append(zeros)
                     inher_probs.append(zeros[0])
@@ -400,7 +400,7 @@ class Prediction(nn.Module):
                 current_node_temp.append(g * t)
 
         current_node = torch.stack(current_node_temp)
-        inherited_rule_embeddings = torch.stack(inherited_rule_embeddings)
+        inherited_formula_embeddings = torch.stack(inherited_formula_embeddings)
 
         current_embeddings = self.dropout(current_node)
 
@@ -424,44 +424,44 @@ class Prediction(nn.Module):
         leaf_input = leaf_input.squeeze(1)
         leaf_input = self.dropout(leaf_input)
         
-        # rule attn
-        rules_attn = self.rule_attn(rule_scores, encoder_outputs, seq_mask)
-        rules_context = (rules_attn+0.2*current_attn).bmm(
+        # formula attn
+        formulas_attn = self.formula_attn(formula_scores, encoder_outputs, seq_mask)
+        formulas_context = (formulas_attn+0.2*current_attn).bmm(
             encoder_outputs.transpose(0, 1))  # B x r x N
 
-        #rule selection
-        rule_score = torch.tanh(self.rule_probs1(rules_context))
-        rule_prob = torch.softmax(self.rule_probs2(rule_score).squeeze(-1), dim=-1)
-        left_rules, right_rules, inher_prob_next = [], [], []
+        #formula selection
+        formula_score = torch.tanh(self.formula_probs1(formulas_context))
+        formula_prob = torch.softmax(self.formula_probs2(formula_score).squeeze(-1), dim=-1)
+        left_formulas, right_formulas, inher_prob_next = [], [], []
         
         # for next goal generation
         left_emb, right_emb, left_mask, right_mask = [], [], [], []
         
         for batch_id in range(len(node_stacks)):
-            left_rule, right_rule, op_sel, inher_prob = None, None, zeros, zeros[0]
+            left_formula, right_formula, op_sel, inher_prob = None, None, zeros, zeros[0]
             l_emb, r_emb, l_m, r_m = padding_hidden, padding_hidden, padding_hidden, padding_hidden
             if len(node_stacks[batch_id]) != 0:
-                if train and rule_gt != None:
-                    rule_select = int(rule_gt[batch_id])
+                if train and formula_gt != None:
+                    formula_select = int(formula_gt[batch_id])
                 else:
-                    rule_select = int(torch.argmax(rule_prob[batch_id]))
-                if rule_select != rule_none_id:
-                    left_rule = rule_roots[rule_select].right_child.left_child
-                    right_rule = rule_roots[rule_select].right_child.right_child
-                    op_sel = one_hot(rule_roots[rule_select].right_child.symbol_index, self.input_size+self.op_nums+num_pades.size(1))
-                    inher_prob = torch.max(rule_prob[batch_id])
-                elif node_stacks[batch_id][-1].rule_node != None:
-                    left_rule = node_stacks[batch_id][-1].rule_node.left_child
-                    right_rule = node_stacks[batch_id][-1].rule_node.right_child
+                    formula_select = int(torch.argmax(formula_prob[batch_id]))
+                if formula_select != formula_none_id:
+                    left_formula = formula_roots[formula_select].right_child.left_child
+                    right_formula = formula_roots[formula_select].right_child.right_child
+                    op_sel = one_hot(formula_roots[formula_select].right_child.symbol_index, self.input_size+self.op_nums+num_pades.size(1))
+                    inher_prob = torch.max(formula_prob[batch_id])
+                elif node_stacks[batch_id][-1].formula_node != None:
+                    left_formula = node_stacks[batch_id][-1].formula_node.left_child
+                    right_formula = node_stacks[batch_id][-1].formula_node.right_child
                     inher_prob = inher_probs[batch_id]
-            if left_rule != None:
-                l_emb = left_rule.embedding
+            if left_formula != None:
+                l_emb = left_formula.embedding
                 l_m = 1 - padding_hidden
-            if right_rule != None:
-                r_emb = right_rule.embedding
+            if right_formula != None:
+                r_emb = right_formula.embedding
                 r_m = 1 - padding_hidden
-            left_rules.append(left_rule)
-            right_rules.append(right_rule)
+            left_formulas.append(left_formula)
+            right_formulas.append(right_formula)
             selected_op.append(op_sel)
             inher_prob_next.append(inher_prob)
             left_emb.append(l_emb)
@@ -475,8 +475,8 @@ class Prediction(nn.Module):
         right_mask = torch.stack(right_mask).squeeze(1)
         
         embedding_weight_ = self.dropout(embedding_weight)
-        # rule-inherited mechanism
-        leaf_inherit_input = self.sym_agg(torch.cat([leaf_input, inherited_rule_embeddings.squeeze(1)], dim=-1))
+        # formula-inherited mechanism
+        leaf_inherit_input = self.sym_agg(torch.cat([leaf_input, inherited_formula_embeddings.squeeze(1)], dim=-1))
         inher_num_score = self.inher_score(leaf_inherit_input.unsqueeze(1), embedding_weight_, mask_nums)
         inher_op = self.inher_ops(leaf_inherit_input)
         inher_outputs = torch.softmax(torch.cat((inher_op, inher_num_score), 1).masked_fill_((1-inherit_mask).bool(), 0),dim=-1) + inherited_op
@@ -491,7 +491,7 @@ class Prediction(nn.Module):
 
         # return p_leaf, num_score, op, current_embeddings, current_attn
 
-        return num_score, op, current_node, current_context, embedding_weight, select_outputs, inher_outputs, inherit_mask, rule_prob, left_rules, right_rules, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next
+        return num_score, op, current_node, current_context, embedding_weight, select_outputs, inher_outputs, inherit_mask, formula_prob, left_formulas, right_formulas, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next
 
 
 class GenerateNode(nn.Module):
@@ -577,26 +577,26 @@ class TreeEmbedding:  # the class save the tree
         self.terminal = terminal
 
 
-class Rule_Judgement(nn.Module):
+class Formula_Judgement(nn.Module):
     def __init__(self, hidden_size):
-        super(Rule_Judgement, self).__init__()
+        super(Formula_Judgement, self).__init__()
         self.f1 = nn.Linear(hidden_size, int(hidden_size))
         self.f2 = nn.Linear(int(hidden_size), int(hidden_size/2))
         self.output = nn.Linear(int(hidden_size/2), 1)
     
-    def forward(self, rule_scores):
-        # rule_scores: n x hidden_size
-        o1 = torch.tanh(self.f1(rule_scores))
+    def forward(self, formula_scores):
+        # formula_scores: n x hidden_size
+        o1 = torch.tanh(self.f1(formula_scores))
         out = torch.sigmoid(self.output(torch.relu(self.f2(o1))))
         return out
         
-class Rule_Encoding(nn.Module):
-    def __init__(self, rule_exp_dict, rule_ent_dict, hidden_size, embedding_size, word2index, dropout=0.5):
-        super(Rule_Encoding, self).__init__()
+class Formula_Encoding(nn.Module):
+    def __init__(self, formula_exp_dict, formula_ent_dict, hidden_size, embedding_size, word2index, dropout=0.5):
+        super(Formula_Encoding, self).__init__()
         
-        self.rule_exp_dict = rule_exp_dict
-        self.rule_ent_dict = rule_ent_dict
-        self.ent_num = len(rule_ent_dict)
+        self.formula_exp_dict = formula_exp_dict
+        self.formula_ent_dict = formula_ent_dict
+        self.ent_num = len(formula_ent_dict)
         self.ent_emb = nn.Embedding(self.ent_num, hidden_size)
         self.embedding_size = embedding_size
         self.hidden_size = hidden_size
@@ -606,38 +606,38 @@ class Rule_Encoding(nn.Module):
         self.merge = Merge(hidden_size, hidden_size)
         self.output_word2index = word2index
         
-        self.rule_judge = Rule_Judgement(hidden_size)
+        self.formula_judge = Formula_Judgement(hidden_size)
         self.non_embed = nn.Embedding(1, hidden_size)
         self.init_encoding()
     
     def init_encoding(self):
         all_ids = []
         all_words = []
-        for rule in self.rule_exp_dict:
-            if rule != "None":
-                ids, words = self.id_convert(rule)
+        for formula in self.formula_exp_dict:
+            if formula != "None":
+                ids, words = self.id_convert(formula)
                 all_ids.append(ids)
                 all_words.append(words)
         self.all_ids = all_ids
         self.all_words = all_words
     
-    def id_convert(self, rule):
-        rule_split = rule.split(' ')
-        rule_id = []
-        for i in rule_split:
+    def id_convert(self, formula):
+        formula_split = formula.split(' ')
+        formula_id = []
+        for i in formula_split:
             if i in self.op:
-                rule_id.append([self.op.index(i)])
+                formula_id.append([self.op.index(i)])
             else:
-                rule_id.append([self.rule_ent_dict[i]])
-        return torch.LongTensor(rule_id), rule_split
+                formula_id.append([self.formula_ent_dict[i]])
+        return torch.LongTensor(formula_id), formula_split
        
     def forward(self, cuda=True):
         all_score = []
         all_root = []
-        for (rule_ids, rule_words) in zip(self.all_ids, self.all_words):
+        for (formula_ids, formula_words) in zip(self.all_ids, self.all_words):
             if cuda:
-                rule_ids = rule_ids.cuda()
-            score, root = self.single_encoding(rule_ids, rule_words)
+                formula_ids = formula_ids.cuda()
+            score, root = self.single_encoding(formula_ids, formula_words)
             all_score.append(score)
             all_root.append(root)
         non_embed = torch.LongTensor([0])
@@ -648,18 +648,18 @@ class Rule_Encoding(nn.Module):
         all_root.append(None)
         return all_score, all_root
         
-    def single_encoding(self, rule_ids, rule_words):
-        left, eq = rule_ids[0], rule_ids[1]
-        rule_l = rule_ids[2:]
-        node_stack, rule_chain = [], []
-        for i in range(len(rule_l)):
-            w, si = rule_words[i+2], rule_ids[i+2]
+    def single_encoding(self, formula_ids, formula_words):
+        left, eq = formula_ids[0], formula_ids[1]
+        formula_l = formula_ids[2:]
+        node_stack, formula_chain = [], []
+        for i in range(len(formula_l)):
+            w, si = formula_words[i+2], formula_ids[i+2]
             if w in ['+','-','*','/']:
                 node_stack.append(TreeEmbedding(self.op_emb(si), False))
-                rule_chain.append(RuleNode(None, self.op_emb(si), None, None, self.output_word2index[w]))
+                formula_chain.append(FormulaNode(None, self.op_emb(si), None, None, self.output_word2index[w]))
             elif not node_stack[-1].terminal:
                 node_stack.append(TreeEmbedding(self.ent_emb(si), True))
-                rule_chain.append(RuleNode(self.ent_emb(si), self.ent_emb(si), None, None))
+                formula_chain.append(FormulaNode(self.ent_emb(si), self.ent_emb(si), None, None))
             else:
                 left_num = node_stack.pop()
                 right_num = self.ent_emb(si)
@@ -667,12 +667,12 @@ class Rule_Encoding(nn.Module):
                 new_num = self.merge(op.embedding, left_num.embedding, right_num)
                 node_stack.append(TreeEmbedding(new_num, True))
                 
-                left_rule = rule_chain.pop()
-                op_rule = rule_chain.pop()
-                op_rule.embedding = new_num
-                op_rule.left_child = left_rule
-                op_rule.right_child = RuleNode(right_num, right_num, None, None)
-                rule_chain.append(op_rule)
+                left_formula = formula_chain.pop()
+                op_formula = formula_chain.pop()
+                op_formula.embedding = new_num
+                op_formula.left_child = left_formula
+                op_formula.right_child = FormulaNode(right_num, right_num, None, None)
+                formula_chain.append(op_formula)
         while len(node_stack) > 1:
             right_num = node_stack.pop()
             left_num = node_stack.pop()
@@ -680,41 +680,41 @@ class Rule_Encoding(nn.Module):
             new_num = self.merge(op.embedding, left_num.embedding, right_num.embedding)
             node_stack.append(TreeEmbedding(new_num, True))
             
-            right_rule = rule_chain.pop()
-            left_rule = rule_chain.pop()
-            op_rule = rule_chain.pop()
-            op_rule.embedding = new_num
-            op_rule.left_child = left_rule
-            op_rule.right_child = right_rule
-            rule_chain.append(op_rule)
+            right_formula = formula_chain.pop()
+            left_formula = formula_chain.pop()
+            op_formula = formula_chain.pop()
+            op_formula.embedding = new_num
+            op_formula.left_child = left_formula
+            op_formula.right_child = right_formula
+            formula_chain.append(op_formula)
         root_emb = self.op_emb(eq)
         left_emb = self.ent_emb(left)
         score = self.merge(root_emb, left_emb, node_stack[0].embedding)
-        chain_root = RuleNode(score, root_emb, RuleNode(left_emb, left_emb, None, None), rule_chain[0])
+        chain_root = FormulaNode(score, root_emb, FormulaNode(left_emb, left_emb, None, None), formula_chain[0])
         return score, chain_root
     
-    def generate_false_rule(self, cuda=True):
+    def generate_false_formula(self, cuda=True):
         false_score = []
-        for (rule_ids, rule_words) in zip(self.all_ids, self.all_words):
+        for (formula_ids, formula_words) in zip(self.all_ids, self.all_words):
             if cuda:
-                rule_ids = rule_ids.cuda()
-            rule_ids1 = copy.deepcopy(rule_ids)
-            rule_words1 = copy.deepcopy(rule_words)
-            pos_ = random.sample(range(len(rule_ids1)-2),1)[0] + 2
-            if rule_words[pos_] in self.op:
+                formula_ids = formula_ids.cuda()
+            formula_ids1 = copy.deepcopy(formula_ids)
+            formula_words1 = copy.deepcopy(formula_words)
+            pos_ = random.sample(range(len(formula_ids1)-2),1)[0] + 2
+            if formula_words[pos_] in self.op:
                 op_can = ['+','-','*','/']
-                op_can.remove(rule_words[pos_])
+                op_can.remove(formula_words[pos_])
                 neg_word = random.sample(op_can, 1)[0]
-                rule_ids1[pos_] = self.op.index(neg_word)
+                formula_ids1[pos_] = self.op.index(neg_word)
             else:
-                word_can = list(self.rule_ent_dict)
-                word_can.remove(rule_words[pos_])
+                word_can = list(self.formula_ent_dict)
+                word_can.remove(formula_words[pos_])
                 neg_word = random.sample(word_can, 1)[0]
-                rule_ids1[pos_] = self.rule_ent_dict[neg_word]
-            rule_words1[pos_] = neg_word
-            score, _ = self.single_encoding(rule_ids1, rule_words1)
+                formula_ids1[pos_] = self.formula_ent_dict[neg_word]
+            formula_words1[pos_] = neg_word
+            score, _ = self.single_encoding(formula_ids1, formula_words1)
             false_score.append(score)
-        false_prob = self.rule_judge(torch.cat(false_score))
+        false_prob = self.formula_judge(torch.cat(false_score))
         return false_prob
             
 class LayerNorm(nn.Module):

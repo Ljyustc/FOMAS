@@ -801,7 +801,7 @@ def prepare_data(pairs_trained, pairs_tested, pairs_valid, trim_min_count, gener
     
     return input_lang, output_lang, train_pairs, test_pairs, valid_pairs
 
-def prepare_data1(pairs_trained, pairs_tested,trim_min_count, generate_nums, copy_nums,bert_path,rule_exp_dict,tree=False):
+def prepare_data1(pairs_trained, pairs_tested,trim_min_count, generate_nums, copy_nums,bert_path,formula_exp_dict,tree=False):
     input_lang = Lang()
     output_lang = Lang()
     train_pairs = []
@@ -836,9 +836,9 @@ def prepare_data1(pairs_trained, pairs_tested,trim_min_count, generate_nums, cop
         num_stack.reverse()
         input_cell = bert_tokenizer.convert_tokens_to_ids(pair[0])
         output_cell = indexes_from_sentence(output_lang, pair[1], tree)
-        rule_id = [rule_exp_dict[item] for item in pair[4]]
+        formula_id = [formula_exp_dict[item] for item in pair[4]]
         train_pairs.append((input_cell,len(input_cell), output_cell, len(output_cell),
-                            pair[2], pair[3], num_stack, rule_id))
+                            pair[2], pair[3], num_stack, formula_id))
     print('Indexed %d words in input language, %d words in output' % (input_lang.n_words, output_lang.n_words))
     print('Number of training data %d' % (len(train_pairs)))
     for pair in pairs_tested:
@@ -860,9 +860,9 @@ def prepare_data1(pairs_trained, pairs_tested,trim_min_count, generate_nums, cop
         num_stack.reverse()
         input_cell = bert_tokenizer.convert_tokens_to_ids(pair[0])
         output_cell = indexes_from_sentence(output_lang, pair[1], tree)
-        rule_id = [rule_exp_dict[item] for item in pair[4]]
+        formula_id = [formula_exp_dict[item] for item in pair[4]]
         test_pairs.append((input_cell,len(input_cell), output_cell, len(output_cell),
-                            pair[2], pair[3], num_stack, rule_id))
+                            pair[2], pair[3], num_stack, formula_id))
     print('Number of testind data %d' % (len(test_pairs)))
     
     return  input_lang,output_lang, train_pairs, test_pairs
@@ -1031,7 +1031,7 @@ def  prepare_train_batch1(pairs_to_batch, batch_size):
     num_stack_batches = []  # save the num stack which
     num_pos_batches = []
     num_size_batches = []
-    rule_batches = []
+    formula_batches = []
     while pos + batch_size < len(pairs):
         batches.append(pairs[pos:pos+batch_size])
         pos += batch_size
@@ -1054,23 +1054,23 @@ def  prepare_train_batch1(pairs_to_batch, batch_size):
         num_stack_batch = []
         num_pos_batch = []
         num_size_batch = []
-        rule_batch = []
-        for i, li, j, lj, num, num_pos, num_stack, rule in batch:
+        formula_batch = []
+        for i, li, j, lj, num, num_pos, num_stack, formula in batch:
             num_batch.append(len(num))
             input_batch.append(pad_seq(i, li, input_len_max))
             output_batch.append(pad_seq(j, lj, output_len_max))
             num_stack_batch.append(num_stack)
             num_pos_batch.append(num_pos)
             num_size_batch.append(len(num_pos))
-            rule_batch.append(pad_seq(rule, lj, output_len_max))
+            formula_batch.append(pad_seq(formula, lj, output_len_max))
         input_batches.append(input_batch)
         nums_batches.append(num_batch)
         output_batches.append(output_batch)
         num_stack_batches.append(num_stack_batch)
         num_pos_batches.append(num_pos_batch)
         num_size_batches.append(num_size_batch)
-        rule_batches.append(rule_batch)
-    return input_batches, input_lengths, output_batches, output_lengths, nums_batches, num_stack_batches, num_pos_batches, num_size_batches, rule_batches
+        formula_batches.append(formula_batch)
+    return input_batches, input_lengths, output_batches, output_lengths, nums_batches, num_stack_batches, num_pos_batches, num_size_batches, formula_batches
 
 def get_num_stack(eq, output_lang, num_pos):
     num_stack = []

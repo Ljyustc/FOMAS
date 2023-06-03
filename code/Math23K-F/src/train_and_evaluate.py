@@ -981,6 +981,8 @@ def evaluate_tree(input_batch, input_length, generate_nums, encoder, predict, ge
 
                 out_token = int(ti)
                 current_out.append(out_token)
+                
+                node = current_node_stack[0].pop()
 
                 if out_token < num_start:
                     generate_input = torch.LongTensor([out_token])

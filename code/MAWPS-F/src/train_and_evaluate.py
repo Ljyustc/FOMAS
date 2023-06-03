@@ -35,17 +35,17 @@ def time_since(s):  # compute time
     return '%dh %dm %ds' % (h, m, s)
 
 
-def generate_rule_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums, generate_nums,
+def generate_formula_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums, generate_nums,
                        english):
-    rule_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
+    formula_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
     if english:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + \
                       [word2index["("]] + generate_nums
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start:
@@ -68,15 +68,15 @@ def generate_rule_mask(decoder_input, nums_batch, word2index, batch_size, nums_s
             elif decoder_input[i] in [word2index["+"], word2index["-"], word2index["/"], word2index["*"]]:
                 res += [_ for _ in range(nums_start, nums_start + nums_batch[i])] + [word2index["("]] + generate_nums
             for j in res:
-                rule_mask[i, j] = 0
+                formula_mask[i, j] = 0
     else:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + \
                       [word2index["["], word2index["("]] + generate_nums
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start or decoder_input[i] in generate_nums:
@@ -101,21 +101,21 @@ def generate_rule_mask(decoder_input, nums_batch, word2index, batch_size, nums_s
                 res += [_ for _ in range(nums_start, nums_start + nums_batch[i])] +\
                   [word2index["["], word2index["("]] + generate_nums
             for j in res:
-                rule_mask[i, j] = 0
-    return rule_mask
+                formula_mask[i, j] = 0
+    return formula_mask
 
 
-def generate_pre_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums,
+def generate_pre_tree_seq_formula_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums,
                                     generate_nums, english):
-    rule_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
+    formula_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
     if english:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums + \
                       [word2index["+"], word2index["-"], word2index["/"], word2index["*"]]
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start or decoder_input[i] in generate_nums:
@@ -128,15 +128,15 @@ def generate_pre_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batch
                 res += [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums + \
                        [word2index["+"], word2index["-"], word2index["/"], word2index["*"]]
             for j in res:
-                rule_mask[i, j] = 0
+                formula_mask[i, j] = 0
     else:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums + \
                       [word2index["+"], word2index["-"], word2index["/"], word2index["*"], word2index["^"]]
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start or decoder_input[i] in generate_nums:
@@ -151,20 +151,20 @@ def generate_pre_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batch
                 res += [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums + \
                        [word2index["+"], word2index["-"], word2index["/"], word2index["*"], word2index["^"]]
             for j in res:
-                rule_mask[i, j] = 0
-    return rule_mask
+                formula_mask[i, j] = 0
+    return formula_mask
 
 
-def generate_post_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums,
+def generate_post_tree_seq_formula_mask(decoder_input, nums_batch, word2index, batch_size, nums_start, copy_nums,
                                      generate_nums, english):
-    rule_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
+    formula_mask = torch.FloatTensor(batch_size, nums_start + copy_nums).fill_(-float("1e12"))
     if english:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start or decoder_input[i] in generate_nums:
@@ -177,14 +177,14 @@ def generate_post_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batc
                        [word2index["+"], word2index["-"], word2index["/"], word2index["*"], word2index["EOS"]
                         ]
             for j in res:
-                rule_mask[i, j] = 0
+                formula_mask[i, j] = 0
     else:
         if decoder_input[0] == word2index["SOS"]:
             for i in range(batch_size):
                 res = [_ for _ in range(nums_start, nums_start + nums_batch[i])] + generate_nums
                 for j in res:
-                    rule_mask[i, j] = 0
-            return rule_mask
+                    formula_mask[i, j] = 0
+            return formula_mask
         for i in range(batch_size):
             res = []
             if decoder_input[i] >= nums_start or decoder_input[i] in generate_nums:
@@ -200,8 +200,8 @@ def generate_post_tree_seq_rule_mask(decoder_input, nums_batch, word2index, batc
                         word2index["EOS"]
                         ]
             for j in res:
-                rule_mask[i, j] = 0
-    return rule_mask
+                formula_mask[i, j] = 0
+    return formula_mask
 
 
 def generate_tree_input(target, decoder_output, nums_stack_batch, num_start, unk):
@@ -459,16 +459,16 @@ def train_attn(input_batch, input_length, target_batch, target_length, num_batch
                 decoder_input = beam_list[b_idx].input_var
                 decoder_hidden = beam_list[b_idx].hidden
 
-                rule_mask = generate_rule_mask(decoder_input, num_batch, output_lang.word2index, batch_size,
+                formula_mask = generate_formula_mask(decoder_input, num_batch, output_lang.word2index, batch_size,
                                                num_start, copy_nums, generate_nums, english)
                 if USE_CUDA:
-                    rule_mask = rule_mask.cuda()
+                    formula_mask = formula_mask.cuda()
                     decoder_input = decoder_input.cuda()
 
                 decoder_output, decoder_hidden = decoder(
                     decoder_input, decoder_hidden, encoder_outputs, seq_mask)
 
-                score = f.log_softmax(decoder_output, dim=1) + rule_mask
+                score = f.log_softmax(decoder_output, dim=1) + formula_mask
                 beam_score = beam_list[b_idx].score
                 beam_score = beam_score.unsqueeze(1)
                 repeat_dims = [1] * beam_score.dim()
@@ -584,15 +584,15 @@ def evaluate_attn(input_seq, input_length, num_list, copy_nums, generate_nums, e
             current_idx += 1
             decoder_hidden = beam_list[b_idx].hidden
 
-            # rule_mask = generate_rule_mask(decoder_input, [num_list], output_lang.word2index,
+            # formula_mask = generate_formula_mask(decoder_input, [num_list], output_lang.word2index,
             #                                1, num_start, copy_nums, generate_nums, english)
             if USE_CUDA:
-                # rule_mask = rule_mask.cuda()
+                # formula_mask = formula_mask.cuda()
                 decoder_input = decoder_input.cuda()
 
             decoder_output, decoder_hidden = decoder(
                 decoder_input, decoder_hidden, encoder_outputs, seq_mask)
-            # score = f.log_softmax(decoder_output, dim=1) + rule_mask.squeeze()
+            # score = f.log_softmax(decoder_output, dim=1) + formula_mask.squeeze()
             score = f.log_softmax(decoder_output, dim=1)
             score += beam_list[b_idx].score
             beam_scores[current_idx * decoder.output_size: (current_idx + 1) * decoder.output_size] = score
@@ -687,14 +687,14 @@ def sort_by_len(seqs, input_len, device=None, dim=1):
 		# sorted_lens = torch.LongTensor(sorted_lens).to(device)
 	return sorted_seqs, sorted_lens, orig_idx
 
-def pretrain_rule(rule_enc, rule_pretrain_optimizer):
-    rule_enc.train()
-    rule_pretrain_optimizer.zero_grad()
+def pretrain_formula(formula_enc, formula_pretrain_optimizer):
+    formula_enc.train()
+    formula_pretrain_optimizer.zero_grad()
     loss_func = nn.BCELoss(reduction='mean')
     # preciseness + flexibility
-    rule_scores = rule_enc()[0][:-1] # positive samples  
-    pos_prob = rule_enc.rule_judge(rule_scores)
-    neg_prob = rule_enc.generate_false_rule()
+    formula_scores = formula_enc()[0][:-1] # positive samples  
+    pos_prob = formula_enc.formula_judge(formula_scores)
+    neg_prob = formula_enc.generate_false_formula()
     
     pos_label = torch.ones(pos_prob.size()[0])
     neg_label = torch.zeros(neg_prob.size()[0])
@@ -707,15 +707,15 @@ def pretrain_rule(rule_enc, rule_pretrain_optimizer):
     loss = pos_loss + neg_loss
     
     loss.backward()
-    rule_pretrain_optimizer.step()
+    formula_pretrain_optimizer.step()
     return loss.item()  # , loss_
 
-def eval_rule(rule_enc):
-    rule_enc.eval()
+def eval_formula(formula_enc):
+    formula_enc.eval()
     # preciseness + flexibility
-    rule_scores = rule_enc()[0][:-1] # positive samples  
-    pos_prob = rule_enc.rule_judge(rule_scores)
-    neg_prob = rule_enc.generate_false_rule()
+    formula_scores = formula_enc()[0][:-1] # positive samples  
+    pos_prob = formula_enc.formula_judge(formula_scores)
+    neg_prob = formula_enc.generate_false_formula()
 
     pos_acc = sum(pos_prob[:,0]>0.5)
     neg_acc = sum(neg_prob[:,0]<0.5)
@@ -723,8 +723,8 @@ def eval_rule(rule_enc):
     return acc
     
 def train_tree(input_batch, input_length, target_batch, target_length, nums_stack_batch, num_size_batch, generate_nums,
-               embedding,encoder, predict, generate, merge, rule_enc, embedding_optimizer,encoder_optimizer, predict_optimizer, generate_optimizer,
-               merge_optimizer, rule_enc_optimizer, input_lang, output_lang, num_pos, rule_batch, english=False):
+               embedding,encoder, predict, generate, merge, formula_enc, embedding_optimizer,encoder_optimizer, predict_optimizer, generate_optimizer,
+               merge_optimizer, formula_enc_optimizer, input_lang, output_lang, num_pos, formula_batch, english=False):
     # sequence mask for attention
     seq_mask = []
     max_len = max(input_length)
@@ -744,7 +744,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
 
     input_var = torch.LongTensor(input_batch)
     target = torch.LongTensor(target_batch).transpose(0, 1)
-    rule_batch = torch.LongTensor(rule_batch)
+    formula_batch = torch.LongTensor(formula_batch)
 
     padding_hidden = torch.FloatTensor([0.0 for _ in range(predict.hidden_size)]).unsqueeze(0)
     batch_size = len(input_length)
@@ -754,7 +754,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     predict.train()
     generate.train()
     merge.train()
-    rule_enc.train()
+    formula_enc.train()
 
     if USE_CUDA:
         input_var = input_var.cuda()
@@ -768,7 +768,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     predict_optimizer.zero_grad()
     generate_optimizer.zero_grad()
     merge_optimizer.zero_grad()
-    rule_enc_optimizer.zero_grad()
+    formula_enc_optimizer.zero_grad()
         
     # Run words through encoder
     embedded = embedding(input_ids=input_var,attention_mask=1 - seq_mask.to(torch.long))
@@ -781,7 +781,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     max_target_length = max(target_length)
 
     all_node_outputs = []
-    all_inher_outputs, all_rule_outputs, inher_masks = [], [], []
+    all_inher_outputs, all_formula_outputs, inher_masks = [], [], []
     # all_leafs = []
 
     copy_num_len = [len(_) for _ in num_pos]
@@ -792,11 +792,11 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     num_start = output_lang.num_start
     embeddings_stacks = [[] for _ in range(batch_size)]
     left_childs = [None for _ in range(batch_size)]
-    rule_scores, rule_roots = rule_enc()
-    rule_none_id = rule_enc.rule_exp_dict['None']
+    formula_scores, formula_roots = formula_enc()
+    formula_none_id = formula_enc.formula_exp_dict['None']
     for t in range(max_target_length):
-        num_score, op, current_embeddings, current_context, current_nums_embeddings, select_outputs, inher_outputs, inher_mask, rule_prob, left_rules, right_rules, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next = predict(
-            node_stacks, left_childs, encoder_outputs, all_nums_encoder_outputs, padding_hidden, seq_mask, num_mask, rule_scores, rule_roots, rule_none_id, train=True, rule_gt=rule_batch[:,t])
+        num_score, op, current_embeddings, current_context, current_nums_embeddings, select_outputs, inher_outputs, inher_mask, formula_prob, left_formulas, right_formulas, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next = predict(
+            node_stacks, left_childs, encoder_outputs, all_nums_encoder_outputs, padding_hidden, seq_mask, num_mask, formula_scores, formula_roots, formula_none_id, train=True, formula_gt=formula_batch[:,t])
 
         # all_leafs.append(p_leaf)
         outputs = torch.cat((op, num_score), 1)
@@ -807,7 +807,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
         
         all_inher_outputs.append(inher_outputs)
         inher_masks.append(inher_mask)
-        all_rule_outputs.append(rule_prob)
+        all_formula_outputs.append(formula_prob)
 
         # target_t, generate_input = generate_tree_input(target[t].tolist(), outputs, nums_stack_batch, num_start, unk)
         target_t, generate_input = generate_tree_input(target[t].tolist(), combine_outputs, nums_stack_batch, num_start, unk)
@@ -817,7 +817,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
         left_child, right_child, node_label = generate(current_embeddings, generate_input, current_context, left_emb, right_emb, left_mask, right_mask)
         left_childs = []
         for idx, l, r, node_stack, i, o, lr, rr, ip in zip(range(batch_size), left_child.split(1), right_child.split(1),
-                                               node_stacks, target[t].tolist(), embeddings_stacks, left_rules, right_rules, inher_prob_next):
+                                               node_stacks, target[t].tolist(), embeddings_stacks, left_formulas, right_formulas, inher_prob_next):
             if len(node_stack) != 0:
                 node = node_stack.pop()
             else:
@@ -844,7 +844,7 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     all_node_outputs = torch.stack(all_node_outputs, dim=1)  # B x S x N
     all_inher_outputs = torch.stack(all_inher_outputs, dim=1)
     inher_masks = torch.stack(inher_masks, dim=1)
-    all_rule_outputs = torch.stack(all_rule_outputs, dim=1)
+    all_formula_outputs = torch.stack(all_formula_outputs, dim=1)
 
     target = target.transpose(0, 1).contiguous()
     if USE_CUDA:
@@ -854,13 +854,13 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
         
         all_inher_outputs = all_inher_outputs.cuda()
         inher_masks = inher_masks.cuda()
-        all_rule_outputs = all_rule_outputs.cuda()
-        rule_batch = rule_batch.cuda()
+        all_formula_outputs = all_formula_outputs.cuda()
+        formula_batch = formula_batch.cuda()
 
     # op_target = target < num_start
     # loss_0 = masked_cross_entropy_without_logit(all_leafs, op_target.long(), target_length)
-    rule_pre_loss = masked_cross_entropy_without_logit(all_rule_outputs, rule_batch, target_length)
-    loss = masked_cross_entropy(all_node_outputs, target, target_length) + 0.01*masked_cross_entropy_without_logit_mask(all_inher_outputs, target, target_length, inher_masks)+ 0.05 * rule_pre_loss
+    formula_pre_loss = masked_cross_entropy_without_logit(all_formula_outputs, formula_batch, target_length)
+    loss = masked_cross_entropy(all_node_outputs, target, target_length) + 0.01*masked_cross_entropy_without_logit_mask(all_inher_outputs, target, target_length, inher_masks)+ 0.05 * formula_pre_loss
     # loss = loss_0 + loss_1
     loss.backward()
     # clip the grad
@@ -874,11 +874,11 @@ def train_tree(input_batch, input_length, target_batch, target_length, nums_stac
     predict_optimizer.step()
     generate_optimizer.step()
     merge_optimizer.step()
-    rule_enc_optimizer.step()
+    formula_enc_optimizer.step()
     return loss.item()  # , loss_0.item(), loss_1.item()
 
 
-def evaluate_tree(input_batch, input_length, generate_nums, embedding, encoder, predict, generate, merge, rule_enc, input_lang, output_lang, num_pos, rule_label, 
+def evaluate_tree(input_batch, input_length, generate_nums, embedding, encoder, predict, generate, merge, formula_enc, input_lang, output_lang, num_pos, formula_label, text, tokenizer, gt_symbol,
                   beam_size=5, english=False, max_length=MAX_OUTPUT_LENGTH):
 
     seq_mask = torch.BoolTensor(1, input_length).fill_(0)
@@ -892,7 +892,7 @@ def evaluate_tree(input_batch, input_length, generate_nums, embedding, encoder, 
     predict.eval()
     generate.eval()
     merge.eval()
-    rule_enc.eval()
+    formula_enc.eval()
 
     padding_hidden = torch.FloatTensor([0.0 for _ in range(predict.hidden_size)]).unsqueeze(0)
 
@@ -922,234 +922,26 @@ def evaluate_tree(input_batch, input_length, generate_nums, embedding, encoder, 
     left_childs = [None for _ in range(batch_size)]
 
     beams = [TreeBeam(1, node_stacks, embeddings_stacks, left_childs, [])]
-    rule_scores, rule_roots = rule_enc()
-    rule_none_id = rule_enc.rule_exp_dict['None']
-    rule_max_preds, rule_min_preds = [], []
+    formula_scores, formula_roots = formula_enc()
+    formula_none_id = formula_enc.formula_exp_dict['None']
     for t in range(max_length):
         current_beams = []
-        rule_pre_t = []
         while len(beams) > 0:
             b = beams.pop()
             if len(b.node_stack[0]) == 0:
                 current_beams.append(b)
                 continue
-            # left_childs = torch.stack(b.left_childs)
             left_childs = b.left_childs
 
-            num_score, op, current_embeddings, current_context, current_nums_embeddings, select_outputs, inher_outputs, inher_mask, rule_prob, left_rules, right_rules, inher_probs, inher_prob_next = predict(
+            num_score, op, current_embeddings, current_context, current_nums_embeddings, select_outputs, inher_outputs, inher_mask, formula_prob, left_formulas, right_formulas, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next = predict(
                 b.node_stack, left_childs, encoder_outputs, all_nums_encoder_outputs, padding_hidden,
-                seq_mask, num_mask, rule_scores, rule_roots, rule_none_id)
+                seq_mask, num_mask, formula_scores, formula_roots, formula_none_id)
 
-            max_value, max_indice = int(torch.max(rule_prob,dim=-1)[0][0]), int(torch.max(rule_prob,dim=-1)[1][0])
-            rule_pre_t.append((max_value, max_indice))
-            # leaf = p_leaf[:, 0].unsqueeze(1)
-            # repeat_dims = [1] * leaf.dim()
-            # repeat_dims[1] = op.size(1)
-            # leaf = leaf.repeat(*repeat_dims)
-            #
-            # non_leaf = p_leaf[:, 1].unsqueeze(1)
-            # repeat_dims = [1] * non_leaf.dim()
-            # repeat_dims[1] = num_score.size(1)
-            # non_leaf = non_leaf.repeat(*repeat_dims)
-            #
-            # p_leaf = torch.cat((leaf, non_leaf), dim=1)
-            # out_score = nn.functional.log_softmax(torch.cat((op, num_score), dim=1), dim=1)
-            out_score = torch.softmax(torch.cat((op, num_score), dim=1), dim=1) + inher_probs[0] * inher_outputs + select_outputs
-            # + 0.5 * inher_outputs
-            # out_score = nn.functional.log_softmax(torch.cat((op, num_score), dim=1), dim=1)
-
-            # out_score = p_leaf * out_score
-
-            topv, topi = out_score.topk(beam_size)
-
-            # is_leaf = int(topi[0])
-            # if is_leaf:
-            #     topv, topi = op.topk(1)
-            #     out_token = int(topi[0])
-            # else:
-            #     topv, topi = num_score.topk(1)
-            #     out_token = int(topi[0]) + num_start
-
-            for tv, ti in zip(topv.split(1, dim=1), topi.split(1, dim=1)):
-                current_node_stack = copy_list(b.node_stack)
-                current_left_childs = []
-                current_embeddings_stacks = copy_list(b.embedding_stack)
-                current_out = copy.deepcopy(b.out)
-
-                out_token = int(ti)
-                current_out.append(out_token)
-
-                node = current_node_stack[0].pop()
-
-                if out_token < num_start:
-                    generate_input = torch.LongTensor([out_token])
-                    if USE_CUDA:
-                        generate_input = generate_input.cuda()
-                    left_child, right_child, node_label = generate(current_embeddings, generate_input, current_context, left_rules, right_rules)
-
-                    current_node_stack[0].append(TreeNode(right_child, right_rules[0], inher_prob=inher_prob_next[0]))
-                    current_node_stack[0].append(TreeNode(left_child, left_rules[0], left_flag=True, inher_prob=inher_prob_next[0]))
-
-                    current_embeddings_stacks[0].append(TreeEmbedding(node_label[0].unsqueeze(0), False))
-                else:
-                    current_num = current_nums_embeddings[0, out_token - num_start].unsqueeze(0)
-
-                    while len(current_embeddings_stacks[0]) > 0 and current_embeddings_stacks[0][-1].terminal:
-                        sub_stree = current_embeddings_stacks[0].pop()
-                        op = current_embeddings_stacks[0].pop()
-                        current_num = merge(op.embedding, sub_stree.embedding, current_num)
-                    current_embeddings_stacks[0].append(TreeEmbedding(current_num, True))
-                if len(current_embeddings_stacks[0]) > 0 and current_embeddings_stacks[0][-1].terminal:
-                    current_left_childs.append(current_embeddings_stacks[0][-1].embedding)
-                else:
-                    current_left_childs.append(None)
-                current_beams.append(TreeBeam(b.score*float(tv), current_node_stack, current_embeddings_stacks,
-                                              current_left_childs, current_out))
-        beams = sorted(current_beams, key=lambda x: x.score, reverse=True)
-        beams = beams[:beam_size]
-        flag = True
-        for b in beams:
-            if len(b.node_stack[0]) != 0:
-                flag = False
-        if flag:
-            break
-        rule_pre_t.sort(key=lambda x: x[0], reverse=True)
-        rule_max_preds.append(rule_pre_t[0][1])
-        rule_min_preds.append(rule_pre_t[-1][1])
-
-    none_id = rule_enc.rule_exp_dict['None']
-    rule_label = np.array(rule_label)[:min(len(rule_label), len(rule_max_preds))]
-    
-    rule_max_preds = np.array(rule_max_preds)[:min(len(rule_label), len(rule_max_preds))]
-    max_cor = sum(rule_max_preds==rule_label)
-    max_wrong = len(rule_label)-max_cor
-    max_none_num = sum(rule_max_preds==none_id)
-    max_valid_num = len(rule_label) - max_none_num
-    max_ft = sum((rule_max_preds!=none_id) * (rule_label==none_id))
-    max_fn = sum((rule_max_preds==none_id) * (rule_label!=none_id))
-    
-    rule_min_preds = np.array(rule_min_preds)[:min(len(rule_label), len(rule_min_preds))]
-    min_cor = sum(rule_min_preds==rule_label)
-    min_wrong = len(rule_label)-min_cor
-    min_none_num = sum(rule_min_preds==none_id)
-    min_valid_num = len(rule_label) - min_none_num
-    min_ft = sum((rule_min_preds!=none_id) * (rule_label==none_id))
-    min_fn = sum((rule_min_preds==none_id) * (rule_label!=none_id))
-    return beams[0].out, max_cor, max_wrong, max_none_num, max_valid_num, max_ft, max_fn, min_cor, min_wrong, min_none_num, min_valid_num, min_ft, min_fn
-
-def evaluate_tree_1(input_batch, input_length, generate_nums, embedding, encoder, predict, generate, merge, rule_enc, input_lang, output_lang, num_pos, rule_label, text, tokenizer, gt_symbol,
-                  beam_size=5, s=False, english=False, max_length=MAX_OUTPUT_LENGTH):
-
-    seq_mask = torch.BoolTensor(1, input_length).fill_(0)
-    # Turn padded arrays into (batch_size x max_len) tensors, transpose into (max_len x batch_size)
-    num_mask = torch.BoolTensor(1, len(num_pos) + len(generate_nums)).fill_(0)
-    # Turn padded arrays into (batch_size x max_len) tensors, transpose into (max_len x batch_size)
-    input_var = torch.LongTensor(input_batch).unsqueeze(0)
-    # Set to not-training mode to disable dropout
-    embedding.eval()
-    encoder.eval()
-    predict.eval()
-    generate.eval()
-    merge.eval()
-    rule_enc.eval()
-
-    padding_hidden = torch.FloatTensor([0.0 for _ in range(predict.hidden_size)]).unsqueeze(0)
-
-    batch_size = 1
-
-    if USE_CUDA:
-        input_var = input_var.cuda()
-        seq_mask = seq_mask.cuda()
-        padding_hidden = padding_hidden.cuda()
-        num_mask = num_mask.cuda()
-        
-    # Run words through encoder
-    
-    embedded = embedding(input_ids=input_var)
-    embedded = embedded.transpose(0,1)
-    encoder_outputs, problem_output = encoder(embedded,[input_length])
-    
-    # Prepare input and output variables
-    node_stacks = [[TreeNode(_, None)] for _ in problem_output.split(1, dim=0)]
-
-    num_size = len(num_pos)
-    all_nums_encoder_outputs = get_all_number_encoder_outputs(encoder_outputs, [num_pos], batch_size, num_size,
-                                                              encoder.hidden_size)
-    num_start = output_lang.num_start
-    # B x P x N
-    embeddings_stacks = [[] for _ in range(batch_size)]
-    left_childs = [None for _ in range(batch_size)]
-
-    beams = [TreeBeam(1, node_stacks, embeddings_stacks, left_childs, [])]
-    rule_scores, rule_roots = rule_enc()
-    rule_none_id = rule_enc.rule_exp_dict['None']
-    rule_max_preds, rule_min_preds = [], []
-    gt = [output_lang.index2word[i] for i in gt_symbol]
-    inve_dict = {value:key for (key,value) in rule_enc.rule_exp_dict.items()}
-    for t in range(max_length):
-        if t < len(gt_symbol):
-            gt_s = gt_symbol[t]
-            rule_need = inve_dict[rule_label[t]]
-        else:
-            gt_s = -1
-            rule_need = 'None'     
-        current_beams = []
-        rule_pre_t = []
-        while len(beams) > 0:
-            b = beams.pop()
-            if len(b.node_stack[0]) == 0:
-                current_beams.append(b)
-                continue
-            # left_childs = torch.stack(b.left_childs)
-            left_childs = b.left_childs
-
-            num_score, op, current_embeddings, current_context, current_nums_embeddings, select_outputs, inher_outputs, inher_mask, rule_prob, left_rules, right_rules, left_emb, right_emb, left_mask, right_mask, inher_probs, inher_prob_next = predict(
-                b.node_stack, left_childs, encoder_outputs, all_nums_encoder_outputs, padding_hidden,
-                seq_mask, num_mask, rule_scores, rule_roots, rule_none_id)
-
-            max_value, max_indice = int(torch.max(rule_prob,dim=-1)[0][0]), int(torch.max(rule_prob,dim=-1)[1][0])
-            rule_pre_t.append((max_value, max_indice))
-            # leaf = p_leaf[:, 0].unsqueeze(1)
-            # repeat_dims = [1] * leaf.dim()
-            # repeat_dims[1] = op.size(1)
-            # leaf = leaf.repeat(*repeat_dims)
-            #
-            # non_leaf = p_leaf[:, 1].unsqueeze(1)
-            # repeat_dims = [1] * non_leaf.dim()
-            # repeat_dims[1] = num_score.size(1)
-            # non_leaf = non_leaf.repeat(*repeat_dims)
-            #
-            # p_leaf = torch.cat((leaf, non_leaf), dim=1)
-            # out_score = nn.functional.log_softmax(torch.cat((op, num_score), dim=1), dim=1)
             dir_score = torch.softmax(torch.cat((op, num_score), dim=1), dim=1)
-            pre_prob = torch.max(rule_prob) * select_outputs.sum()
+            pre_prob = torch.max(formula_prob) * select_outputs.sum()
             out_score = dir_score + pre_prob * select_outputs + inher_probs[0] * inher_outputs * inher_mask
-            # if rule_need != 'None' and s and select_outputs.sum()!=0:
-            # if s:
-                # text1 = tokenizer.convert_ids_to_tokens(text)
-                # print("text", text1)
-                # print("rule_label", rule_label)
-                # print("rule_prob", rule_prob)
-                # print("gt", gt)
-                # print("t", t)
-                # print("pos:", gt_s)
-                # print("dir:", dir_score)
-                # print("inh:", inher_outputs * inher_mask)
-                # print("sel:", select_outputs)
-            # + 0.5 * inher_outputs
-            # out_score = nn.functional.log_softmax(torch.cat((op, num_score), dim=1), dim=1)
-
-            # out_score = p_leaf * out_score
 
             topv, topi = out_score.topk(beam_size)
-
-            # is_leaf = int(topi[0])
-            # if is_leaf:
-            #     topv, topi = op.topk(1)
-            #     out_token = int(topi[0])
-            # else:
-            #     topv, topi = num_score.topk(1)
-            #     out_token = int(topi[0]) + num_start
 
             for tv, ti in zip(topv.split(1, dim=1), topi.split(1, dim=1)):
                 current_node_stack = copy_list(b.node_stack)
@@ -1168,8 +960,8 @@ def evaluate_tree_1(input_batch, input_length, generate_nums, embedding, encoder
                         generate_input = generate_input.cuda()
                     left_child, right_child, node_label = generate(current_embeddings, generate_input, current_context, left_emb, right_emb, left_mask, right_mask)
 
-                    current_node_stack[0].append(TreeNode(right_child, right_rules[0], inher_prob=inher_prob_next[0]))
-                    current_node_stack[0].append(TreeNode(left_child, left_rules[0], left_flag=True, inher_prob=inher_prob_next[0]))
+                    current_node_stack[0].append(TreeNode(right_child, right_formulas[0], inher_prob=inher_prob_next[0]))
+                    current_node_stack[0].append(TreeNode(left_child, left_formulas[0], left_flag=True, inher_prob=inher_prob_next[0]))
 
                     current_embeddings_stacks[0].append(TreeEmbedding(node_label[0].unsqueeze(0), False))
                 else:
@@ -1194,29 +986,7 @@ def evaluate_tree_1(input_batch, input_length, generate_nums, embedding, encoder
                 flag = False
         if flag:
             break
-        rule_pre_t.sort(key=lambda x: x[0], reverse=True)
-        rule_max_preds.append(rule_pre_t[0][1])
-        rule_min_preds.append(rule_pre_t[-1][1])
-
-    none_id = rule_enc.rule_exp_dict['None']
-    rule_label = np.array(rule_label)[:min(len(rule_label), len(rule_max_preds))]
-    
-    rule_max_preds = np.array(rule_max_preds)[:min(len(rule_label), len(rule_max_preds))]
-    max_cor = sum(rule_max_preds==rule_label)
-    max_wrong = len(rule_label)-max_cor
-    max_none_num = sum(rule_max_preds==none_id)
-    max_valid_num = len(rule_label) - max_none_num
-    max_ft = sum((rule_max_preds!=none_id) * (rule_label==none_id))
-    max_fn = sum((rule_max_preds==none_id) * (rule_label!=none_id))
-    
-    rule_min_preds = np.array(rule_min_preds)[:min(len(rule_label), len(rule_min_preds))]
-    min_cor = sum(rule_min_preds==rule_label)
-    min_wrong = len(rule_label)-min_cor
-    min_none_num = sum(rule_min_preds==none_id)
-    min_valid_num = len(rule_label) - min_none_num
-    min_ft = sum((rule_min_preds!=none_id) * (rule_label==none_id))
-    min_fn = sum((rule_min_preds==none_id) * (rule_label!=none_id))
-    return beams[0].out, max_cor, max_wrong, max_none_num, max_valid_num, max_ft, max_fn, min_cor, min_wrong, min_none_num, min_valid_num, min_ft, min_fn
+    return beams[0].out
     
 def topdown_train_tree(input_batch, input_length, target_batch, target_length, nums_stack_batch, num_size_batch,
                        generate_nums, encoder, predict, generate, encoder_optimizer, predict_optimizer,
