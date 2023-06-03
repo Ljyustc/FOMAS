@@ -1,7 +1,6 @@
+### Guiding Mathematical Reasoning via Mastering Commonsense Formula Knowledge
 
-### FOMAS
-
-Dataset and source code for Formula-mastered Solver (FOMAS).
+Dataset and source code for paper *Guiding Mathematical Reasoning via Mastering Commonsense Formula Knowledge*.
 
 
 ### Requirements
