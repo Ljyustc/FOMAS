@@ -31,6 +31,8 @@ formula.txt: collection of 18 commonsense math formulas
 formula_variant.txt: collection of 46 commonsense math formulas and their variants
 ```
 
+To get the annotated dataset, please contact us with email: jy251198@mail.ustc.edu.cn.
+
 ### Running
 
 **Train the model :** 
