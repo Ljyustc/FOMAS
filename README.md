@@ -1,6 +1,6 @@
 ### Guiding Mathematical Reasoning via Mastering Commonsense Formula Knowledge
 
-This is the offcial repo for the KDD-2023 paper "[Guiding Mathematical Reasoning via Mastering Commonsense Formula Knowledge]".
+This is the offcial repo for the KDD-2023 paper "[Guiding Mathematical Reasoning via Mastering Commonsense Formula Knowledge](https://dl.acm.org/doi/10.1145/3580305.3599375)".
 
 ### Requirements
 * python==3.6
@@ -31,7 +31,7 @@ formula.txt: collection of 18 commonsense math formulas
 formula_variant.txt: collection of 46 commonsense math formulas and their variants
 ```
 
-To get the annotated dataset, please contact us with email: jy251198@mail.ustc.edu.cn.
+To visit the annotated dataset, please contact us with email: jy251198@mail.ustc.edu.cn.
 
 ### Running
 
